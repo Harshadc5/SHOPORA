@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cart — AIORA Test Fixture</title>
+</head>
+<body>
+
+  <div class="announcement-bar" data-promo="true">
+    Free shipping on orders over $35
+  </div>
+
+  <div class="cart" data-cart="true">
+    <div class="cart-item">Nike Air Max — $84.00</div>
+    <div class="cart-subtotal" data-subtotal="84.00">Subtotal: $84.00</div>
+
+    <input type="text"
+           name="discount_code"
+           placeholder="Promo code"
+           data-promo-field="true"
+           value="">
+
+    <input type="text"
+           name="loyalty_code"
+           placeholder="Loyalty points"
+           data-loyalty-field="true"
+           value="">
+
+    <!-- This value should be scrubbed by PII scrubbing -->
+    <input type="text"
+           name="email"
+           value="customer@example.com">
+
+    <button data-checkout-btn="true">Proceed to Checkout</button>
+  </div>
+
+  <div class="loyalty-widget" data-loyalty-tier="Silver">
+    Silver Member — 820 points
+  </div>
+
+</body>
+</html>

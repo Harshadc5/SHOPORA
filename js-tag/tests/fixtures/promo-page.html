@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sale — AIORA Test Fixture</title>
+</head>
+<body>
+
+  <!-- Multiple promo banners — tests multi-construct co-occurrence -->
+  <div class="announcement-bar" data-promo="true">
+    🔥 Up to 30% off sitewide — today only
+  </div>
+
+  <div class="promo-banner" data-promo="true">
+    ⚡ Flash sale: Extra 15% off sale items with code FLASH15
+  </div>
+
+  <!-- Shipping offer alongside promo — coordination failure candidate -->
+  <div class="shipping-banner" data-shipping-offer="true">
+    Free shipping on orders over $35
+  </div>
+
+  <!-- Product grid with sponsored placement -->
+  <div class="product-grid">
+
+    <div class="product-tile" data-product-id="SKU-001">
+      <div class="sponsored-label">Sponsored</div>
+      <div class="product-name">Running Shoe Pro</div>
+      <div class="price-current">$110.00</div>
+      <div class="inventory-badge">Only 2 left!</div>
+    </div>
+
+    <div class="product-tile" data-product-id="SKU-002">
+      <div class="product-name">Classic Trainer</div>
+      <div class="price-current">$84.00</div>
+      <div class="price-was">$120.00</div>
+      <div class="social-proof">47 people viewing this</div>
+    </div>
+
+    <div class="product-tile" data-product-id="SKU-003">
+      <div class="product-name">Trail Runner</div>
+      <div class="price-current">$95.00</div>
+      <!-- Out of stock but still showing in grid -->
+      <div class="inventory-badge">Out of stock</div>
+    </div>
+
+  </div>
+
+</body>
+</html>
