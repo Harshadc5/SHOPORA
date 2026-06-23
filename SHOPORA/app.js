@@ -88,11 +88,7 @@ function applyVisual(node, product) {
   node.classList.add('sprite-' + product.category);
   const index = Math.max(0, Number(product.id.split('-')[1]) - 1);
   node.style.setProperty('--sprite-x', (index % 5) * 25 + '%');
-  if (product.category === 'books') {
-    const palette = bookPalettes[index % bookPalettes.length];
-    node.style.setProperty('--book-a', palette[0]);
-    node.style.setProperty('--book-b', palette[1]);
-  }
+  node.style.setProperty('--sprite-y', Math.floor(index / 5) * 50 + '%');
 }
 function buildProductCard(product, template) {
   const card = template.content.firstElementChild.cloneNode(true);
