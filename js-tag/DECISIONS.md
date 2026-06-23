@@ -45,6 +45,10 @@ Check for: edge cases not covered by tests, misleading comments, anything
 that would surprise a new developer, and whether the test suite actually
 proves what it claims to prove. Document findings before making any changes.
 
+   # Fixtures Completed --1
+      --> There was a issue with version sync (f.e.g running v 0.1.0 , it shows 1.0.0), now its perfectly synced.
+      --> One note was there reagrding currently failing but when I ran all the tests, now its working fine. 
+
 **2. PII scrubbing audit**
 Research current best practice for client-side PII scrubbing in browser tags
 (GDPR, CCPA context). Key questions:
@@ -55,6 +59,13 @@ Research current best practice for client-side PII scrubbing in browser tags
 - Does scrubbing hold up against dynamically injected personalisation content?
 - Are there known bypass patterns we should defend against?
 Update Section 7 of `tag.js` and unit tests based on findings.
+
+   # Fixtures Completed --2
+      --> There was a issue with dom captures. DOM taking the data attributes, when html attributes on page elements injects data. I have added a targetedd allow list in scrubPII() which will remove the personal info taken by DOM from klaviyo, loyalty popups,etc. 
+      & an alternative is, we can go for -NER (if possible).
+      --> Bypass patterns- Meta Tags, our scrubber will completely ignore the meta tags. we should delete the meta tag where the customer personal info does exists.
+                         - Query Strings of Url(maximum chances, most of the retailer 
+      avoids this), Instead of trying to block specific PII parameters like ?email=, the safest alternate is to either strip ALL query parameters entirely.(instead of https://shopora.com/checkout?email=a@gmail.com&cart=001, the defensive way will be https://shopora.com/checkout)
 
 **3. Playwright browser test suite**
 Add a second test layer that runs the tag in a real Chromium browser.

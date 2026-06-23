@@ -198,11 +198,15 @@
     //   - Password field values
     //   - Script tag contents (executable code, may contain secrets)
     //   - Style tag contents (not signals, just noise)
+    //   - PII-carrying data-* attributes (data-email, data-user-id,
+    //     data-phone, data-customer-id, etc.) injected by personalisation
+    //     platforms such as Klaviyo, Salesforce Commerce, Shopify Plus
     //
     // What we do NOT strip:
     //   - Text content visible on the page (this is what we need)
     //   - Element structure and class names (needed for signal detection)
-    //   - Data attributes (needed for signal detection)
+    //   - Safe signal data-* attributes (data-promo, data-product-id,
+    //     data-loyalty-tier, data-page-type, etc.)
     // ================================================================
 
     function scrubPII(html) {
@@ -232,7 +236,24 @@
       // Remove style tags — not signals, just noise
       doc.querySelectorAll('style').forEach(function (el) { el.remove(); });
 
+      // Remove PII-carrying data-* attributes injected by personalisation platforms
+      // (e.g. Klaviyo, Salesforce Commerce, Shopify Plus customer objects).
+      // We keep safe signal attributes (data-promo, data-product-id, data-loyalty-tier).
+      // We remove only known PII carriers — a safe, targeted allowlist approach.
+      var PII_DATA_ATTRS = [
+        'data-email', 'data-user-email', 'data-customer-email',
+        'data-user-id', 'data-customer-id', 'data-account-id',
+        'data-phone', 'data-mobile',
+        'data-first-name', 'data-last-name', 'data-full-name',
+        'data-address', 'data-postcode', 'data-zip',
+      ];
+      var piiSelector = PII_DATA_ATTRS.map(function(a) { return '[' + a + ']'; }).join(',');
+      doc.querySelectorAll(piiSelector).forEach(function(el) {
+        PII_DATA_ATTRS.forEach(function(attr) { el.removeAttribute(attr); });
+      });
+
       return doc.documentElement.outerHTML;
+
     }
 
 

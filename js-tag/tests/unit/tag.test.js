@@ -32,11 +32,11 @@ const TAG_SOURCE = readFileSync(
  */
 function runTagInWindow(scriptAttrs = {}, { beforeEval } = {}) {
   const attrs = {
-    'data-client-id':         'test-retailer-001',
-    'data-sampling-rate':     '1.0',
+    'data-client-id': 'test-retailer-001',
+    'data-sampling-rate': '1.0',
     'data-hydration-timeout': '50',
-    'data-dom-settle-ms':     '10',
-    'data-endpoint':          'https://httpbin.org/post',
+    'data-dom-settle-ms': '10',
+    'data-endpoint': 'https://httpbin.org/post',
     ...scriptAttrs,
   };
 
@@ -129,8 +129,8 @@ function runTagInWindow(scriptAttrs = {}, { beforeEval } = {}) {
  * Mirrors what tag.js does in Section 7.
  */
 function scrubPII(html) {
-  const dom    = new JSDOM(html, { url: 'https://test.com' });
-  const doc    = dom.window.document;
+  const dom = new JSDOM(html, { url: 'https://test.com' });
+  const doc = dom.window.document;
 
   doc.querySelectorAll('input, textarea, select').forEach(el => {
     el.removeAttribute('value');
@@ -145,6 +145,19 @@ function scrubPII(html) {
   doc.querySelectorAll('script').forEach(el => el.remove());
   doc.querySelectorAll('style').forEach(el => el.remove());
 
+  // Remove PII-carrying data-* attributes — mirrors tag.js Section 7
+  const PII_DATA_ATTRS = [
+    'data-email', 'data-user-email', 'data-customer-email',
+    'data-user-id', 'data-customer-id', 'data-account-id',
+    'data-phone', 'data-mobile',
+    'data-first-name', 'data-last-name', 'data-full-name',
+    'data-address', 'data-postcode', 'data-zip',
+  ];
+  const piiSelector = PII_DATA_ATTRS.map(a => `[${a}]`).join(',');
+  doc.querySelectorAll(piiSelector).forEach(el => {
+    PII_DATA_ATTRS.forEach(attr => el.removeAttribute(attr));
+  });
+
   return doc.documentElement.outerHTML;
 }
 
@@ -154,12 +167,12 @@ function scrubPII(html) {
  */
 function classifyPageType(path) {
   const p = path.toLowerCase();
-  if (p.includes('/cart'))     return 'cart';
+  if (p.includes('/cart')) return 'cart';
   if (p.includes('/checkout')) return 'checkout';
-  if (p.includes('/search'))   return 'serp';
+  if (p.includes('/search')) return 'serp';
   if (p.includes('/product') ||
-      p.includes('/p/') ||
-      p.includes('/pdp'))      return 'pdp';
+    p.includes('/p/') ||
+    p.includes('/pdp')) return 'pdp';
   if (p === '/' || p.includes('/home')) return 'homepage';
   return 'category';
 }
@@ -170,29 +183,29 @@ function classifyPageType(path) {
  */
 function assemblePayload(config, scrubbedDOM) {
   return {
-    schema_version: '1.0.0',
-    tag_version:    '1.0.0',
-    client_id:      config.clientId,
-    beacon_id:      crypto.randomUUID(),
-    session_token:  crypto.randomUUID(),
-    timestamp:      new Date().toISOString(),
+    schema_version: '0.1.0',
+    tag_version: '0.1.0',
+    client_id: config.clientId,
+    beacon_id: crypto.randomUUID(),
+    session_token: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
     page: {
       page_type: classifyPageType(config.path ?? '/'),
-      page_url:  config.url ?? 'https://test.com',
+      page_url: config.url ?? 'https://test.com',
     },
     dom: scrubbedDOM,
     signals: {
-      promo_banners:      [],
-      cart_state:         null,
+      promo_banners: [],
+      cart_state: null,
       fulfillment_offers: [],
-      tiles:              [],
+      tiles: [],
     },
     privacy_metadata: {
-      pii_scrubbing_version:   '1.0.0',
+      pii_scrubbing_version: '0.1.0',
       local_scrubbing_applied: true,
-      inputs_scrubbed:         true,
-      scripts_removed:         true,
-      styles_removed:          true,
+      inputs_scrubbed: true,
+      scripts_removed: true,
+      styles_removed: true,
       persistent_storage_used: false,
     },
   };
@@ -350,7 +363,7 @@ describe('PII Scrubbing', () => {
     expect(scrubbed).toContain('Up to 30% off sitewide');
   });
 
-  // pii-test-8: data-* attributes must survive — used by signal capture functions
+  // pii-test-8: data-* attributes used for signals must survive
   it('preserves data attributes used for signal detection', () => {
     const html = `<html><body>
       <div data-promo="true" data-loyalty-tier="Silver">Sale</div>
@@ -358,6 +371,40 @@ describe('PII Scrubbing', () => {
     const scrubbed = scrubPII(html);
     expect(scrubbed).toContain('data-promo="true"');
     expect(scrubbed).toContain('data-loyalty-tier="Silver"');
+  });
+
+  // pii-test-8b: PII-carrying data-* attributes injected by personalisation
+  // platforms (Klaviyo, Salesforce Commerce) must be removed even though
+  // safe data-* attributes are preserved. This is the critical gap Fix 3 closes.
+  it('removes PII-carrying data-* attributes (data-email, data-user-id, etc)', () => {
+    const html = `<html><body>
+      <div class="announcement"
+           data-email="john.smith@gmail.com"
+           data-user-id="USR_8472910"
+           data-customer-id="CUST_001"
+           data-phone="+91-98765-43210"
+           data-user-email="john@example.com"
+           data-customer-email="john@example.com"
+           data-promo="true">
+        Free delivery above ₹799
+      </div>
+    </body></html>`;
+    const scrubbed = scrubPII(html);
+    // PII attributes must be gone
+    expect(scrubbed).not.toContain('john.smith@gmail.com');
+    expect(scrubbed).not.toContain('USR_8472910');
+    expect(scrubbed).not.toContain('CUST_001');
+    expect(scrubbed).not.toContain('+91-98765-43210');
+    expect(scrubbed).not.toContain('data-email');
+    expect(scrubbed).not.toContain('data-user-id');
+    expect(scrubbed).not.toContain('data-customer-id');
+    expect(scrubbed).not.toContain('data-phone');
+    expect(scrubbed).not.toContain('data-user-email');
+    expect(scrubbed).not.toContain('data-customer-email');
+    // Safe signal attributes must survive
+    expect(scrubbed).toContain('data-promo="true"');
+    // Visible text must survive
+    expect(scrubbed).toContain('Free delivery above');
   });
 
   // pii-test-9: class names must survive — used by signal capture CSS selectors
@@ -476,14 +523,14 @@ describe('Payload Shape', () => {
   // NOTE: tests the local helper's hardcoded value, not the real tag.js version
   it('includes schema_version', () => {
     const payload = assemblePayload(baseConfig, '<html></html>');
-    expect(payload.schema_version).toBe('1.0.0');
+    expect(payload.schema_version).toBe('0.1.0');
   });
 
   // payload-test-2: tag_version present — server uses this for debugging
   // NOTE: same caveat as payload-test-1
   it('includes tag_version', () => {
     const payload = assemblePayload(baseConfig, '<html></html>');
-    expect(payload.tag_version).toBe('1.0.0');
+    expect(payload.tag_version).toBe('0.1.0');
   });
 
   // payload-test-3: client_id flows through from config to payload
@@ -567,8 +614,8 @@ describe('Payload Shape', () => {
       <input type="password" value="secret123">
     </body></html>`;
     const scrubbed = scrubPII(dirtyHTML);
-    const payload  = assemblePayload(baseConfig, scrubbed);
-    const json     = JSON.stringify(payload);
+    const payload = assemblePayload(baseConfig, scrubbed);
+    const json = JSON.stringify(payload);
     expect(json).not.toContain('customer@example.com');
     expect(json).not.toContain('secret123');
   });
