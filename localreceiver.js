@@ -2,7 +2,7 @@
  * AIORA Local Beacon Receiver
  * Receives sendBeacon POST requests from the JS tag and prints the payload.
  * Run: node receiver.js
- * Then set data-endpoint="http://localhost:4000" on your script tags.
+ * Then set  data-endpoint="http://localhost:4000"on your script tags.
  */
 
 const http = require('http');
