@@ -1,4 +1,11 @@
-export default function handler(req, res) {
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+export default async function handler(req, res) {
   // Allow CORS from any origin
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -54,6 +61,24 @@ export default function handler(req, res) {
       const domSize = payload.dom ? Math.round(payload.dom.length / 1024) : 0;
       console.log(`\n🧩 DOM size  : ${domSize} KB (scrubbed)`);
       console.log('═'.repeat(60));
+
+      // Save to Supabase database
+      if (supabase) {
+        const { error } = await supabase.from('events').insert([
+          {
+            client_id: payload.client_id,
+            page_url: payload.page?.page_url || 'unknown',
+            payload: payload
+          }
+        ]);
+        if (error) {
+          console.error('\n⚠️  Supabase Insert Error:', error.message);
+        } else {
+          console.log('\n✅  Successfully saved to Supabase!');
+        }
+      } else {
+        console.log('\n⚠️  Supabase keys not found in Environment Variables. Skipping DB insert.');
+      }
 
       return res.status(202).json({ status: 'accepted' });
     } catch (e) {
