@@ -1,0 +1,243 @@
+:root {
+  --navy: #10243e;
+  --navy-2: #183654;
+  --ink: #182230;
+  --muted: #667085;
+  --blue: #1463ff;
+  --blue-dark: #0c49c7;
+  --accent: #ffb000;
+  --surface: #fff;
+  --soft: #f3f5f7;
+  --line: #e4e7ec;
+
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: var(--ink);
+  background-color: #f5f6f8;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #eaf1ff 0%, #f5f6f8 300px);
+}
+
+#root {
+  width: 100%;
+}
+
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.header {
+  margin-bottom: 3.5rem;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  font-size: 2.8rem;
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--navy);
+}
+
+.header p {
+  color: var(--muted);
+  font-size: 1.15rem;
+  margin-top: 0.5rem;
+}
+
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #eaf8f3;
+  color: var(--green);
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  border: 1px solid #c0e8d6;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--green);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(18, 128, 92, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(18, 128, 92, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(18, 128, 92, 0); }
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 24px rgba(16,36,62,.06);
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+}
+
+.card-total::before { background: var(--blue); }
+.card-cart::before { background: var(--accent); }
+.card-conflict::before { background: var(--red); }
+
+.metric-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(16,36,62,.12);
+}
+
+.metric-title {
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.metric-value {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: var(--navy);
+  line-height: 1;
+  margin: 0;
+}
+
+.metric-value.highlight {
+  color: var(--blue);
+}
+
+.events-section {
+  margin-top: 4rem;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(16,36,62,.04);
+  overflow: hidden;
+}
+
+.events-header {
+  padding: 1.5rem 2rem;
+  background: var(--navy);
+  color: white;
+}
+
+.events-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.events-list {
+  display: grid;
+}
+
+.event-item {
+  display: grid;
+  grid-template-columns: 100px 1fr 150px;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid var(--line);
+  font-family: monospace;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.event-item:last-child {
+  border-bottom: none;
+}
+
+.event-item:hover {
+  background: var(--soft);
+}
+
+.event-time {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.event-details {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.event-type {
+  background: #eaf1ff;
+  color: var(--blue-dark);
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.event-url {
+  color: var(--navy-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-client {
+  text-align: right;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 1.5rem;
+  color: var(--blue);
+  font-weight: 700;
+}

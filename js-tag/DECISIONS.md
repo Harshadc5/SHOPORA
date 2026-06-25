@@ -45,9 +45,11 @@ Check for: edge cases not covered by tests, misleading comments, anything
 that would surprise a new developer, and whether the test suite actually
 proves what it claims to prove. Document findings before making any changes.
 
-   # Fixtures Completed --1
+   # Fixtures Completed --
       --> There was a issue with version sync (f.e.g running v 0.1.0 , it shows 1.0.0), now its perfectly synced.
       --> One note was there reagrding currently failing but when I ran all the tests, now its working fine. 
+
+    # Ignoring section 2,3 for now, we will work on it later.
 
 **2. PII scrubbing audit**
 Research current best practice for client-side PII scrubbing in browser tags
@@ -60,12 +62,49 @@ Research current best practice for client-side PII scrubbing in browser tags
 - Are there known bypass patterns we should defend against?
 Update Section 7 of `tag.js` and unit tests based on findings.
 
-   # Fixtures Completed --2
+   # Fixtures Completed --
       --> There was a issue with dom captures. DOM taking the data attributes, when html attributes on page elements injects data. I have added a targetedd allow list in scrubPII() which will remove the personal info taken by DOM from klaviyo, loyalty popups,etc. 
       & an alternative is, we can go for -NER (if possible).
-      --> Bypass patterns- Meta Tags, our scrubber will completely ignore the meta tags. we should delete the meta tag where the customer personal info does exists.
-                         - Query Strings of Url(maximum chances, most of the retailer 
-      avoids this), Instead of trying to block specific PII parameters like ?email=, the safest alternate is to either strip ALL query parameters entirely.(instead of https://shopora.com/checkout?email=a@gmail.com&cart=001, the defensive way will be https://shopora.com/checkout)
+      
+      # Pros and Cons of Targeted allow list and NER
+
+       PROS of Targeted allow list :-
+        Advanced Security and Fast Execution
+
+       CONS of Targeted allow list :-
+        High Maintenance - if any change made in retailer side, we have to update our tag too and may be chance for some data loss.
+
+
+       PROS of NER :-
+        It will catch all hidden PII, no need to maintain any record of blocked attributes.
+
+       CONS of NER :-
+        May effect on site Performance, sometimes it will remove data even when not requreid.
+
+     # Efficient Solution :- REGEX - Zero Maintenance, No Data loss, High Performance due to fast in speed.
+       
+      --> Bypass patterns - Meta Tags, our scrubber will completely ignore the meta tags. we should delete the meta tag where the customer personal info does exists.
+                          - Query Strings of Url(maximum chances, most of the retailer 
+      avoids this), Instead of trying to block specific PII parameters like ?email=, the safest alternate is to either strip ALL query parameters entirely.(instead of https://shopora.com/checkout?email=a@gmail.com&cart=001, the defensive way will be https://shopora.com/checkout).
+
+      # Pros and Cons of Removing Meta Tags and URL Qs
+
+       PROS of Removing Meta Tags :-
+        Fast Execution
+ 
+       CONS of Removing Meta Tags :- 
+        Loss of page context
+
+
+       PROS of Removing URL Qs :-
+        Fully PII leak prevention, Easy to implement
+
+       CONS of Removing URL Qs :-
+        May destroy data analytics (when we have to track whether user came from any offers or promos)
+
+      # Efficient Solution :- OpenGraph Tags - safe as well as good for analytics, 
+                             Standard utm tagging - throws away the dangerous attributes.
+
 
 **3. Playwright browser test suite**
 Add a second test layer that runs the tag in a real Chromium browser.
@@ -94,6 +133,32 @@ Tests to write in `tests/browser/performance.test.js`:
 - CLS score is 0 with and without the tag
 - Beacon fires within `hydrationTimeout + domSettleMs` ms of page load
 - Main thread not blocked during capture (no long tasks > 50ms)
+
+   # Fixtures Remaining --
+      --> During the playwright browser test suite, 0ut of 9 test cases - 7 are successfully passed. and 2 test cases are currently failing.
+      
+      test - Beacon fires within `hydrationTimeout + domSettleMs` ms of page load
+                 We can update our tag.js code, for the waitForHydration function,  by manually start the settleTimer, immediately start the 500ms countdown when the script loads, rather than waiting for the first mutation to trigger it.
+
+       #Pros and Cons of Updating tag.js code for the waitForHydration function.
+
+        PROS of Updating tag.js :-
+         Tag will be faster and more reliable.
+
+        CONS of Updating tag.js :-
+         adding lines of code.
+       
+
+      test - Main thread not blocked during capture (no long tasks > 50ms)
+                 We can use addInscript function and immediately run page.goto (hard refresh).
+
+       #Pros and Cons of addInscript function.
+
+        PROS of addInscript function :-
+         Isolated memory space.
+
+        CONS of addInscript function :-
+         Doing hard refresh , may increase the test execution time by fraction of ms.
 
 **4. Real retail page testing**
 Download rendered HTML snapshots from real retail sites (Shopify, Magento,
@@ -158,6 +223,12 @@ selectors actually appear in the wild. Priority order:
 
 Currently using `application/json`. Decision needed before the Cloudflare
 Worker at `ingest.aiora.systems` is built.
+
+--> I decided to change the type to text/pain and hosted on vercel because I want to just validate  the tag functionality (checking whether the dom size  needs to be updated or not), We can discuss this once we begin the testing phase.
+
+  I used the text/plain type, just to skip the CORS preflight check (bypass the preflight rules) by cutting out the server load. 
+
+  Cloudflare worker and Vercel's Edge Functions are built on the exact same V8 Isolate technology. Vercel is more developer-friendly and all-in-one platform, so I decided to use Vercel for now.
 
 **The CORS preflight problem**
 

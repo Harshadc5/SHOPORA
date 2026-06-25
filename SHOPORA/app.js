@@ -2,9 +2,9 @@ import { products, categories } from './data/products.js';
 
 const CART_KEY = 'shopora-cart-v2';
 const WISHLIST_KEY = 'shopora-wishlist';
-const INR_RATE = 83;
-const FREE_DELIVERY_MIN = 799;
-const DELIVERY_FEE = 99;
+const USD_RATE = 1;
+const FREE_DELIVERY_MIN = 35;
+const DELIVERY_FEE = 5;
 const cart = loadCart();
 const wishlist = new Set(loadJSON(WISHLIST_KEY, []));
 const currentPage = location.pathname.split('/').pop() || 'index.html';
@@ -16,9 +16,9 @@ function loadCart() {
   const saved = loadJSON(CART_KEY, {});
   return Object.fromEntries(Object.entries(saved).filter(([id, quantity]) => products.some((p) => p.id === id) && Number.isFinite(quantity) && quantity > 0));
 }
-function retailPrice(product) { return Math.round(product.price * INR_RATE); }
-function retailOldPrice(product) { return Math.round(product.oldPrice * INR_RATE); }
-function money(value) { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value); }
+function retailPrice(product) { return product.price * USD_RATE; }
+function retailOldPrice(product) { return product.oldPrice * USD_RATE; }
+function money(value) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value); }
 function discount(product) { return Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100); }
 function ratingCount(product) { return 120 + [...product.id].reduce((sum, char) => sum + char.charCodeAt(0), 0) * 9; }
 function cartCount() { return Object.values(cart).reduce((sum, quantity) => sum + quantity, 0); }
@@ -174,14 +174,50 @@ function renderCatalog() {
     const maxPrice = Number(price.value);
     let filtered = products.filter((product) => {
       const searchable = [product.name,product.description,product.badge,...product.specs].join(' ').toLowerCase();
-      return (activeCategory === 'all' || product.category === activeCategory) && (!dealOnly || product.deal) && (!term || searchable.includes(term)) && retailPrice(product) <= maxPrice && product.rating >= minRating;
+      
+      // Smart search: match whole words or basic plurals, preventing "table" from matching "adjustable" or "tablets"
+      const searchMatch = !term || term.split(/\s+/).every(t => {
+        const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`\\b${escaped}(s|es)?\\b`, 'i').test(searchable);
+      });
+
+      return (activeCategory === 'all' || product.category === activeCategory) && (!dealOnly || product.deal) && searchMatch && retailPrice(product) <= maxPrice && product.rating >= minRating;
     });
-    const sorters = { 'price-low':(a,b)=>retailPrice(a)-retailPrice(b),'price-high':(a,b)=>retailPrice(b)-retailPrice(a),rating:(a,b)=>b.rating-a.rating,discount:(a,b)=>discount(b)-discount(a),featured:(a,b)=>Number(b.deal)-Number(a.deal)||b.rating-a.rating };
+
+    // Score relevance so exact name matches appear first
+    if (term) {
+      filtered.forEach(product => {
+        product._relevance = 0;
+        const nameLower = product.name.toLowerCase();
+        term.split(/\s+/).forEach(t => {
+          if (nameLower.includes(t)) product._relevance += 10;
+          else if (product.description.toLowerCase().includes(t)) product._relevance += 1;
+        });
+      });
+    }
+
+    const sorters = { 
+      'price-low':(a,b)=>retailPrice(a)-retailPrice(b),
+      'price-high':(a,b)=>retailPrice(b)-retailPrice(a),
+      rating:(a,b)=>b.rating-a.rating,
+      discount:(a,b)=>discount(b)-discount(a),
+      featured:(a,b)=> term ? ((b._relevance || 0) - (a._relevance || 0) || Number(b.deal)-Number(a.deal) || b.rating-a.rating) : (Number(b.deal)-Number(a.deal)||b.rating-a.rating)
+    };
     filtered.sort(sorters[sort.value] || sorters.featured);
     priceOutput.textContent = 'Up to ' + money(maxPrice);
     document.querySelector('#resultCount').textContent = filtered.length + ' products';
     const categoryName = activeCategory === 'all' ? 'All products' : categories.find((c) => c.key === activeCategory).label;
-    document.querySelector('#resultsHeading').textContent = dealOnly ? "Today's deals" : categoryName;
+    
+    let headingText = dealOnly ? "Today's deals" : categoryName;
+    if (term) {
+      headingText = `Search results for "${search.value.trim()}"`;
+    }
+    document.querySelector('#resultsHeading').textContent = headingText;
+    
+    const subheadingText = activeCategory === 'all' 
+      ? 'Quality picks across electronics, fashion, home and books.' 
+      : `Quality picks across ${categoryName.toLowerCase()}.`;
+    document.querySelector('#resultsSubheading').textContent = subheadingText;
     grid.innerHTML = '';
     filtered.forEach((product) => grid.appendChild(buildProductCard(product, template)));
     empty.hidden = filtered.length !== 0;
@@ -232,6 +268,12 @@ function renderCheckout() {
 }
 function initSearch() {
   const form=document.querySelector('#searchForm'),input=document.querySelector('#headerSearch'),category=document.querySelector('#headerCategory');if(!form||!input)return;
+  const params = new URLSearchParams(location.search);
+  if (input && params.has('q')) input.value = params.get('q');
+  if (category && params.has('category')) {
+    const val = params.get('category');
+    if (Array.from(category.options).some(o => o.value === val)) category.value = val;
+  }
   form.addEventListener('submit',(event)=>{event.preventDefault();const target=new URL('./category.html',location.href);if(input.value.trim())target.searchParams.set('q',input.value.trim());if(category?.value&&category.value!=='all')target.searchParams.set('category',category.value);location.href=target.toString();});
 }
 function initGlobalInteractions() {

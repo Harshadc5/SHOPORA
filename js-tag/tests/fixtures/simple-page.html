@@ -1,12 +1,114 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <title>Simple Page — AIORA Test Fixture</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#10243e">
+  <title>Shop products | SHOPORA</title>
+  <meta name="description" content="Browse and filter all SHOPORA products.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css?v=5">
 </head>
-<body>
-  <h1>Simple Retailer Page</h1>
-  <p>A minimal page with no commerce signals. Used to test baseline tag behavior.</p>
-  <p>The tag should fire, capture DOM, and send beacon with empty signals arrays.</p>
+
+<body data-page-type="category">
+  <a class="skip-link" href="#mainContent">Skip to content</a>
+  <div class="announcement"><span>Free delivery above ₹799</span><span>Easy 7-day returns</span><span>100% secure
+      payments</span></div>
+  <header class="site-header">
+    <div class="nav-shell"><a class="brand" href="./index.html"><span
+          class="brand-mark">S</span><span>SHOPORA<small>smart shopping</small></span></a>
+      <form class="searchbar" id="searchForm" role="search"><select aria-label="Search category" id="headerCategory">
+          <option value="all">All</option>
+          <option value="electronics">Electronics</option>
+          <option value="fashion">Fashion</option>
+          <option value="home">Home</option>
+          <option value="books">Books</option>
+        </select><input id="headerSearch" type="search" placeholder="Search for products, brands and more"
+          aria-label="Search products"><button aria-label="Submit search">⌕</button>
+      </form>
+      <nav class="account-nav"><a href="./index.html"><span>Back to</span><strong>Home</strong></a><a
+          href="./category.html"><span>Your</span><strong>Wishlist <b data-wishlist-count>0</b></strong></a><a
+          class="cart-link" href="./cart.html"><span class="cart-glyph">🛒</span><strong
+            data-cart-count>0</strong><b>Cart</b></a></nav>
+    </div>
+    <div class="dept-rail"><button class="mobile-menu-button" type="button">☰ All</button><a
+        href="?category=electronics">Mobiles & Electronics</a><a href="?category=fashion">Fashion</a><a
+        href="?category=home">Home & Kitchen</a><a href="?category=books">Books</a><a href="?deal=true">Today's
+        Deals</a><span class="rail-offer">Shopora Plus: extra 5% off</span></div>
+  </header>
+  <main id="mainContent" class="catalog-shell">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="./index.html">Home</a><span>›</span><span>All
+        products</span></nav>
+    <div class="catalog-heading">
+      <div><span class="section-kicker">SHOPORA CATALOG</span>
+        <h1 id="resultsHeading">Find your next favourite</h1>
+        <p id="resultsSubheading">Quality picks across electronics, fashion, home and books.</p>
+      </div><button class="filter-toggle button" id="filterToggle" type="button">Filters &
+        sort</button>
+    </div>
+    <div class="catalog-layout">
+      <aside class="sidebar" id="filterPanel">
+        <div class="filter-title"><strong>Filters</strong><button id="clearFilters" type="button">Clear all</button>
+        </div><label class="filter-group"><span>Search within results</span><input id="searchInput" type="search"
+            placeholder="What are you looking for?"></label>
+        <div class="filter-group"><span>Department</span>
+          <div class="category-filter-list" id="categoryFilters"></div>
+        </div><label class="filter-group"><span>Maximum price</span><input id="priceRange" type="range" min="1000"
+            max="75000" step="500" value="75000"><output id="priceOutput">Up to ₹75,000</output></label>
+        <div class="filter-group"><span>Customer rating</span><label class="radio-row"><input type="radio" name="rating"
+              value="0" checked> All
+            ratings</label><label class="radio-row"><input type="radio" name="rating" value="4"> ★★★★ & up</label><label
+            class="radio-row"><input type="radio" name="rating" value="4.5"> 4.5+
+            top rated</label></div>
+      </aside>
+      <section class="catalog-results">
+        <div class="results-toolbar">
+          <p id="resultCount">Loading products…</p><label>Sort by <select id="sortSelect">
+              <option value="featured">Featured</option>
+              <option value="price-low">Price: low to high</option>
+              <option value="price-high">Price: high to low</option>
+              <option value="rating">Customer rating</option>
+              <option value="discount">Biggest discount</option>
+            </select></label>
+        </div>
+        <div class="product-grid catalog-grid" id="catalogGrid"></div>
+        <div class="empty-results" id="emptyResults" hidden><span>⌕</span>
+          <h2>No products found</h2>
+          <p>Try changing your search or removing a filter.</p><button class="button button-primary"
+            id="emptyClear">Clear filters</button>
+        </div>
+      </section>
+    </div>
+  </main>
+  <template id="productCardTemplate">
+    <article class="product-card">
+      <div class="product-image">
+        <div class="product-badge-row"><span class="discount-badge"></span><button class="wishlist-button" type="button"
+            aria-label="Add to wishlist">♡</button></div>
+      </div>
+      <div class="product-body">
+        <p class="product-brand"></p>
+        <h3></h3>
+        <div class="rating-line"><span class="stars"></span><span class="rating-count"></span>
+        </div>
+        <p class="product-meta"></p>
+        <div class="price-stack"><strong></strong><del></del><span></span></div>
+        <p class="delivery-note">FREE delivery <b>Tomorrow</b></p>
+        <div class="card-actions"><button class="button quick-view" type="button">Quick
+            view</button><button class="button button-primary add-to-cart" type="button">Add to cart</button></div>
+      </div>
+    </article>
+  </template>
+  <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+  <div id="quickViewModal" class="modal" hidden></div>
+  <script type="module" src="./app.js"></script>
+  <!-- AIORA JS Tag — coordination failure signal collector -->
+  <script src="./tag.js" data-client-id="shopora-dev" data-sampling-rate="1.0" data-endpoint="/api/collect"
+    data-hydration-timeout="3000" data-dom-settle-ms="500" async>
+    </script>
 </body>
+
 </html>
