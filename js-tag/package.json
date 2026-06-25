@@ -7,7 +7,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:browser": "playwright test tests/browser",
+    "test:browser": "playwright test tests/browser/isolation.test.js tests/browser/performance.test.js",
+    "test:retail": "playwright test tests/browser/retail.test.js",
     "build": "esbuild src/tag.js --bundle --minify --outfile=dist/tag.min.js"
   },
   "devDependencies": {

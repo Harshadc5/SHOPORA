@@ -35,10 +35,10 @@
     const _script = document.currentScript;
 
     const config = {
-      clientId:         _script?.dataset?.clientId                       ?? null,
-      samplingRate:     parseFloat(_script?.dataset?.samplingRate        ?? '1.0'),
-      hydrationTimeout: parseInt(_script?.dataset?.hydrationTimeout      ?? '3000'),
-      domSettleMs:      parseInt(_script?.dataset?.domSettleMs           ?? '500'),
+      clientId: _script?.dataset?.clientId ?? null,
+      samplingRate: parseFloat(_script?.dataset?.samplingRate ?? '1.0'),
+      hydrationTimeout: parseInt(_script?.dataset?.hydrationTimeout ?? '3000'),
+      domSettleMs: parseInt(_script?.dataset?.domSettleMs ?? '500'),
 
       // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       // TODO — CRITICAL: Replace this endpoint before any retailer
@@ -247,9 +247,9 @@
         'data-first-name', 'data-last-name', 'data-full-name',
         'data-address', 'data-postcode', 'data-zip',
       ];
-      var piiSelector = PII_DATA_ATTRS.map(function(a) { return '[' + a + ']'; }).join(',');
-      doc.querySelectorAll(piiSelector).forEach(function(el) {
-        PII_DATA_ATTRS.forEach(function(attr) { el.removeAttribute(attr); });
+      var piiSelector = PII_DATA_ATTRS.map(function (a) { return '[' + a + ']'; }).join(',');
+      doc.querySelectorAll(piiSelector).forEach(function (el) {
+        PII_DATA_ATTRS.forEach(function (attr) { el.removeAttribute(attr); });
       });
 
       return doc.documentElement.outerHTML;
@@ -292,16 +292,16 @@
           var text = (el.textContent || '').trim();
           if (!text) return;
           banners.push({
-            position:   i,
+            position: i,
             text_scrubbed: text.slice(0, 120),
-            surface:    el.closest('.announcement') ? 'announcement_bar'
-                      : el.closest('.promo-banner') ? 'promo_banner'
-                      : el.closest('.hero')         ? 'hero'
-                      : 'other',
-            claim_type: /free/i.test(text)     ? 'free_offer'
-                      : /off|%|save/i.test(text) ? 'discount'
-                      : /deal|sale/i.test(text)  ? 'sale'
-                      : 'general',
+            surface: el.closest('.announcement') ? 'announcement_bar'
+              : el.closest('.promo-banner') ? 'promo_banner'
+                : el.closest('.hero') ? 'hero'
+                  : 'other',
+            claim_type: /free/i.test(text) ? 'free_offer'
+              : /off|%|save/i.test(text) ? 'discount'
+                : /deal|sale/i.test(text) ? 'sale'
+                  : 'general',
           });
         });
         return banners;
@@ -311,7 +311,7 @@
     function captureCartState(doc) {
       try {
         // Detect which page we're on — cart or checkout (both have cart-level data)
-        var isCart     = !!doc.querySelector('.cart-layout, .cart-items, #cartItems');
+        var isCart = !!doc.querySelector('.cart-layout, .cart-items, #cartItems');
         var isCheckout = !!doc.querySelector('.checkout-layout, .checkout-summary, #checkoutItems');
         if (!isCart && !isCheckout) return null;
 
@@ -325,31 +325,31 @@
           // Actual cart line items — app.js renders: article.cart-item inside #cartItems
           // Structure: <article class="cart-item"><h3>name</h3><div class="cart-item-price"><strong>price</strong><del>old</del><small>20% off</small></div></article>
           doc.querySelectorAll('#cartItems article.cart-item, #cartItems .cart-item').forEach(function (item) {
-            var nameEl     = item.querySelector('h3');
-            var priceEl    = item.querySelector('.cart-item-price strong');
+            var nameEl = item.querySelector('h3');
+            var priceEl = item.querySelector('.cart-item-price strong');
             var oldPriceEl = item.querySelector('.cart-item-price del');
             var discountEl = item.querySelector('.cart-item-price small');
-            var name       = nameEl     ? nameEl.textContent.trim().slice(0, 80)     : null;
-            var price      = priceEl    ? priceEl.textContent.trim().slice(0, 20)    : null;
-            var oldPrice   = oldPriceEl ? oldPriceEl.textContent.trim().slice(0, 20) : null;
-            var discount   = discountEl ? discountEl.textContent.trim().slice(0, 20) : null;
+            var name = nameEl ? nameEl.textContent.trim().slice(0, 80) : null;
+            var price = priceEl ? priceEl.textContent.trim().slice(0, 20) : null;
+            var oldPrice = oldPriceEl ? oldPriceEl.textContent.trim().slice(0, 20) : null;
+            var discount = discountEl ? discountEl.textContent.trim().slice(0, 20) : null;
             if (name) lineItems.push({ name: name, price: price, old_price: oldPrice, discount: discount });
           });
 
           var subtotalEl = doc.querySelector('#summarySubtotal');
-          var subtotal   = subtotalEl ? subtotalEl.textContent.trim().slice(0, 20) : null;
+          var subtotal = subtotalEl ? subtotalEl.textContent.trim().slice(0, 20) : null;
           var shippingBar = doc.querySelector('#shippingProgress, .shipping-progress');
-          var promoField  = doc.querySelector('input[name*="discount"], input[name*="coupon"]');
+          var promoField = doc.querySelector('input[name*="discount"], input[name*="coupon"]');
           var checkoutBtn = doc.querySelector('#checkoutButton');
 
           return {
-            page_context:        'cart',
-            item_count:          itemCount,
-            line_items:          lineItems,
-            subtotal:            subtotal,
+            page_context: 'cart',
+            item_count: itemCount,
+            line_items: lineItems,
+            subtotal: subtotal,
             promo_field_present: !!promoField,
-            checkout_reachable:  !!checkoutBtn,
-            shipping_bar_shown:  !!(shippingBar && shippingBar.textContent.trim()),
+            checkout_reachable: !!checkoutBtn,
+            shipping_bar_shown: !!(shippingBar && shippingBar.textContent.trim()),
           };
         }
 
@@ -357,30 +357,30 @@
         if (isCheckout) {
           // Items shown in checkout summary sidebar (#checkoutItems)
           doc.querySelectorAll('#checkoutItems .mini-cart-item, #checkoutItems [class*="item"], #checkoutItems li').forEach(function (item) {
-            var nameEl  = item.querySelector('[class*="name"], span, strong, p');
+            var nameEl = item.querySelector('[class*="name"], span, strong, p');
             var priceEl = item.querySelector('[class*="price"], strong');
-            var name    = nameEl  ? nameEl.textContent.trim().slice(0, 80)  : null;
-            var price   = priceEl ? priceEl.textContent.trim().slice(0, 20) : null;
+            var name = nameEl ? nameEl.textContent.trim().slice(0, 80) : null;
+            var price = priceEl ? priceEl.textContent.trim().slice(0, 20) : null;
             if (name) lineItems.push({ name: name, price: price });
           });
 
-          var subtotalEl  = doc.querySelector('#checkoutSubtotal');
-          var totalEl     = doc.querySelector('#checkoutTotal');
-          var deliveryEl  = doc.querySelector('#checkoutDelivery');
-          var orderBtn    = doc.querySelector('#placeOrderButton, .place-order');
+          var subtotalEl = doc.querySelector('#checkoutSubtotal');
+          var totalEl = doc.querySelector('#checkoutTotal');
+          var deliveryEl = doc.querySelector('#checkoutDelivery');
+          var orderBtn = doc.querySelector('#placeOrderButton, .place-order');
           var paymentOpts = doc.querySelectorAll('input[name="payment"]');
           var selectedPay = null;
           paymentOpts.forEach(function (r) { if (r.checked) selectedPay = r.value; });
 
           return {
-            page_context:        'checkout',
-            line_items:          lineItems,
-            subtotal:            subtotalEl  ? subtotalEl.textContent.trim().slice(0, 20)  : null,
-            total:               totalEl     ? totalEl.textContent.trim().slice(0, 20)     : null,
-            delivery_cost:       deliveryEl  ? deliveryEl.textContent.trim().slice(0, 20)  : null,
-            order_button_shown:  !!orderBtn,
+            page_context: 'checkout',
+            line_items: lineItems,
+            subtotal: subtotalEl ? subtotalEl.textContent.trim().slice(0, 20) : null,
+            total: totalEl ? totalEl.textContent.trim().slice(0, 20) : null,
+            delivery_cost: deliveryEl ? deliveryEl.textContent.trim().slice(0, 20) : null,
+            order_button_shown: !!orderBtn,
             payment_options_count: paymentOpts.length,
-            selected_payment:    selectedPay,
+            selected_payment: selectedPay,
           };
         }
 
@@ -391,7 +391,7 @@
     function captureFulfillmentOffers(doc) {
       try {
         var offers = [];
-        var seen   = {};
+        var seen = {};
         doc.querySelectorAll('.announcement span, .delivery-note, .shipping-progress, [class*="shipping"], [class*="delivery"]').forEach(function (el) {
           var text = (el.textContent || '').trim().slice(0, 120);
           if (!text || seen[text]) return;
@@ -402,15 +402,15 @@
           var threshold = numMatch ? parseFloat(numMatch[1].replace(/,/g, '')) : null;
 
           offers.push({
-            text_scrubbed:         text,
-            trigger_type:          /free/i.test(text)  ? 'free_shipping'
-                                 : /fast|express/i.test(text) ? 'express'
-                                 : /tomorrow|next.day/i.test(text) ? 'next_day'
-                                 : 'standard',
+            text_scrubbed: text,
+            trigger_type: /free/i.test(text) ? 'free_shipping'
+              : /fast|express/i.test(text) ? 'express'
+                : /tomorrow|next.day/i.test(text) ? 'next_day'
+                  : 'standard',
             threshold_value_bucket: threshold === null ? null
-                                  : threshold < 500   ? 'low'
-                                  : threshold < 1000  ? 'mid'
-                                  : 'high',
+              : threshold < 500 ? 'low'
+                : threshold < 1000 ? 'mid'
+                  : 'high',
           });
         });
         return offers;
@@ -430,39 +430,39 @@
           }
 
           // Name
-          var nameEl  = card.querySelector('h3, .product-name, [class*="name"]');
-          var name    = nameEl ? nameEl.textContent.trim().slice(0, 80) : null;
+          var nameEl = card.querySelector('h3, .product-name, [class*="name"]');
+          var name = nameEl ? nameEl.textContent.trim().slice(0, 80) : null;
 
           // Brand
           var brandEl = card.querySelector('.product-brand, [class*="brand"]');
-          var brand   = brandEl ? brandEl.textContent.trim().slice(0, 40) : null;
+          var brand = brandEl ? brandEl.textContent.trim().slice(0, 40) : null;
 
           // Price (current)
           var priceEl = card.querySelector('.price-stack strong, [class*="price"] strong, .price');
-          var price   = priceEl ? priceEl.textContent.trim().slice(0, 20) : null;
+          var price = priceEl ? priceEl.textContent.trim().slice(0, 20) : null;
 
           // Old/struck price (markdown signal)
-          var oldEl    = card.querySelector('.price-stack del, del, [class*="old-price"]');
+          var oldEl = card.querySelector('.price-stack del, del, [class*="old-price"]');
           var oldPrice = oldEl ? oldEl.textContent.trim().slice(0, 20) : null;
 
           // Discount badge
           var badgeEl = card.querySelector('.discount-badge, [class*="badge"], [class*="deal"]');
-          var badge   = badgeEl ? badgeEl.textContent.trim().slice(0, 30) : null;
+          var badge = badgeEl ? badgeEl.textContent.trim().slice(0, 30) : null;
 
           // Out-of-stock signal
-          var addBtn  = card.querySelector('.add-to-cart, [class*="add-to-cart"]');
+          var addBtn = card.querySelector('.add-to-cart, [class*="add-to-cart"]');
           var inStock = addBtn ? !addBtn.disabled : true;
 
           if (!name) return; // skip skeleton/empty cards
 
           tiles.push({
-            position:     tiles.length,
-            name:         name,
-            brand:        brand,
-            price:        price,
-            old_price:    oldPrice,
-            badge:        badge,
-            in_stock:     inStock,
+            position: tiles.length,
+            name: name,
+            brand: brand,
+            price: price,
+            old_price: oldPrice,
+            badge: badge,
+            in_stock: inStock,
             has_markdown: !!(oldPrice && oldPrice !== price),
           });
         });
@@ -478,14 +478,14 @@
 
       // Fallback: URL-pattern based classification (for sites without data-page-type)
       const path = window.location.pathname.toLowerCase();
-      if (path.includes('/cart'))     return 'cart';
+      if (path.includes('/cart')) return 'cart';
       if (path.includes('/checkout')) return 'checkout';
-      if (path.includes('/search'))   return 'serp';
+      if (path.includes('/search')) return 'serp';
       if (path.includes('/product') ||
-          path.includes('/p/') ||
-          path.includes('/pdp'))      return 'pdp';
+        path.includes('/p/') ||
+        path.includes('/pdp')) return 'pdp';
       if (path === '/' ||
-          path.includes('/home'))     return 'homepage';
+        path.includes('/home')) return 'homepage';
       return 'category'; // default
     }
 
@@ -502,15 +502,15 @@
 
       return {
         schema_version: '0.1.0',
-        tag_version:    '0.1.0',
-        client_id:      config.clientId,
-        beacon_id:      crypto.randomUUID(),
-        session_token:  sessionToken,
-        timestamp:      new Date().toISOString(),
+        tag_version: '0.1.0',
+        client_id: config.clientId,
+        beacon_id: crypto.randomUUID(),
+        session_token: sessionToken,
+        timestamp: new Date().toISOString(),
 
         page: {
           page_type: capturePageType(),
-          page_url:  window.location.href,
+          page_url: window.location.href,
         },
 
         // Raw DOM — used by server-side Claude evaluation
@@ -521,19 +521,19 @@
         // SIGNALS — pass the parsed doc to each capture function
         // ============================================================
         signals: {
-          promo_banners:      capturePromoBanners(doc),
-          cart_state:         captureCartState(doc),
+          promo_banners: capturePromoBanners(doc),
+          cart_state: captureCartState(doc),
           fulfillment_offers: captureFulfillmentOffers(doc),
-          tiles:              captureTiles(doc),
+          tiles: captureTiles(doc),
         },
 
         privacy_metadata: {
-          pii_scrubbing_version:     '0.1.0',
-          local_scrubbing_applied:   true,
-          inputs_scrubbed:           true,
-          scripts_removed:           true,
-          styles_removed:            true,
-          persistent_storage_used:   false,
+          pii_scrubbing_version: '0.1.0',
+          local_scrubbing_applied: true,
+          inputs_scrubbed: true,
+          scripts_removed: true,
+          styles_removed: true,
+          persistent_storage_used: false,
         },
       };
     }
@@ -570,9 +570,9 @@
     // ================================================================
 
     function onIdleReady() {
-      const rawDOM      = document.documentElement.outerHTML;
+      const rawDOM = document.documentElement.outerHTML;
       const scrubbedDOM = scrubPII(rawDOM);
-      const payload     = assemblePayload(scrubbedDOM);
+      const payload = assemblePayload(scrubbedDOM);
       sendPayload(payload);
     }
 
