@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fake PDP | SHOPORA</title>
+  <link rel="stylesheet" href="https://shopora-xi-opal.vercel.app/styles.css?v=5" />
+</head>
+
+<body data-page-type="pdp">
+  <div class="announcement"><span>Free delivery above $35</span><span>Easy 7-day returns</span><span>100% secure
+      payments</span></div>
+  <header class="site-header">
+    <div class="nav-shell">
+      <a class="brand" href="./index.html" aria-label="SHOPORA home"><span
+          class="brand-mark">S</span><span>SHOPORA<small>smart shopping</small></span></a>
+      <form class="searchbar" id="searchForm" role="search"><select aria-label="Search category" id="headerCategory">
+          <option value="all">All</option>
+          <option value="electronics">Electronics</option>
+          <option value="fashion">Fashion</option>
+          <option value="home">Home</option>
+          <option value="books">Books</option>
+        </select><input id="headerSearch" type="search" placeholder="Search for products, brands and more"
+          aria-label="Search products" /><button type="submit" aria-label="Submit search">⌕</button></form>
+      <nav class="account-nav" aria-label="Account links"><a href="#"
+          data-toast="Sign-in will be connected when a backend is added."><span>Hello,
+            guest</span><strong>Account</strong></a><a href="#best-deals"><span>Returns</span><strong>&
+            Orders</strong></a><a class="wishlist-link" href="./category.html"><span>♡</span><strong
+            data-wishlist-count>0</strong></a><a class="cart-link" href="./cart.html"><span
+            class="cart-glyph">🛒</span><strong data-cart-count>0</strong><b>Cart</b></a></nav>
+    </div>
+    <div class="dept-rail" aria-label="Department shortcuts"><button class="mobile-menu-button" type="button"
+        aria-expanded="false">☰ All</button><a href="./category.html?category=electronics">Mobiles & Electronics</a><a
+        href="./category.html?category=fashion">Fashion</a><a href="./category.html?category=home">Home & Kitchen</a><a
+        href="./category.html?category=books">Books</a><a href="#best-deals">Today's Deals</a><a
+        href="#services">Customer Service</a><span class="rail-offer">Shopora Plus: extra 5% off</span></div>
+  </header>
+  <main id="mainContent"
+    style="padding: 40px; display: flex; gap: 40px; max-width: 1200px; margin: 0 auto; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 300px;">
+      <div style="width: 100%; padding-top: 100%; background: #f0f0f0; border-radius: 8px; position: relative;">
+        <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #888;">Product
+          Image</span>
+      </div>
+    </div>
+    <div style="flex: 1; min-width: 300px;">
+      <article class="product-card" data-sku="FAKE-123" data-sponsored="false" style="box-shadow: none; padding: 0;">
+        <p class="product-brand">TestBrand</p>
+        <h1 style="font-size: 2.5rem; margin-bottom: 10px; color: #10243e;">Super Widget 3000</h1>
+        <div class="price-stack" style="margin: 20px 0; font-size: 1.5rem;">
+          <strong>$149.99</strong>
+          <del>$199.99</del>
+          <span class="discount-badge">25% OFF</span>
+        </div>
+
+        <div style="margin: 20px 0; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <label for="sizeSelect" style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">Choose
+            Size</label>
+          <select id="sizeSelect"
+            style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #ccc; font-size: 1rem;">
+            <option value="s">Small</option>
+            <option value="m">Medium</option>
+            <option value="l">Large</option>
+            <option value="xl">Extra Large</option>
+          </select>
+        </div>
+
+        <p class="delivery-note" style="margin-bottom: 20px;">Delivers tomorrow</p>
+
+        <button class="button button-primary add-to-cart"
+          style="width: 100%; padding: 15px; font-size: 1.2rem; border-radius: 8px;">
+          Add to Cart
+        </button>
+      </article>
+    </div>
+  </main>
+
+  <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
+  <!-- AIORA JS Tag -->
+  <script src="../../../src/tag.js" data-client-id="shopora-dev" data-endpoint="/api/collect" data-sampling-rate="1.0"
+    data-hydration-timeout="3000" data-dom-settle-ms="500" async></script>
+</body>
+
+</html>
