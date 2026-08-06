@@ -1,0 +1,8 @@
+{
+  "name": "shopora",
+  "version": "1.0.0",
+  "description": "Shopora Demo E-Commerce with AIORA Tag",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.0"
+  }
+}
