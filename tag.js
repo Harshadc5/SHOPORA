@@ -59,8 +59,10 @@
         // In-memory only — never written to any persistent storage.
         // ================================================================
 
-        const sessionToken = crypto.randomUUID();
-
+        // const sessionToken = crypto.randomUUID(); //when it is in live production
+        const sessionToken = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : Math.random().toString(36).substring(2) + Date.now().toString(36);
 
         // ================================================================
         // SECTION 4 — BEACON GUARD
@@ -782,26 +784,37 @@
                 var tiles = [];
                 var positionCounter = 1;
 
-                // --- NEW: DIRECTIVE - HERO PRODUCT EXTRACTION ---
+                // --- NEW:  - HERO PRODUCT EXTRACTION ---
                 if (pageType === 'pdp') {
                     var heroEl = firstMatch(doc, FIELD_SEL.heroElement);
 
-                    // If we can't find a wrapper, we build the Hero manually using the h1 and main price
-                    var h1 = textOf(doc.querySelector('h1, .product-title, [data-automation-id="productName"]'), 80);
-                    if (h1) {
-                        var heroTile = { position: positionCounter, surface: 'hero', name: h1 };
-                        var skuEl = firstMatch(doc, FIELD_SEL.sku);
-                        if (skuEl) heroTile.sku = skuEl.getAttribute('data-product-id') || skuEl.getAttribute('data-sku') || textOf(skuEl, 30);
-
-                        var parsedPrice = parsePrice(textOf(firstMatch(doc, FIELD_SEL.price), 20));
-                        if (parsedPrice) {
-                            heroTile.price = parsedPrice.amount;
-                            if (parsedPrice.currency) heroTile.currency = parsedPrice.currency;
+                    if (heroEl) {
+                        // BUGFIX: If a hero wrapper is found, use the master full-extraction engine!
+                        var heroTile = buildTile(heroEl, positionCounter);
+                        if (heroTile) {
+                            heroTile.surface = 'hero';
+                            tiles.push(heroTile);
+                            positionCounter++;
                         }
-                        tiles.push(heroTile);
-                        positionCounter++;
+                    } else {
+                        // Fallback: If we can't find a wrapper, we build the Hero manually using the h1 and main price
+                        var h1 = textOf(doc.querySelector('h1, .product-title, [data-automation-id="productName"]'), 80);
+                        if (h1) {
+                            var heroTile = { position: positionCounter, surface: 'hero', name: h1 };
+                            var skuEl = firstMatch(doc, FIELD_SEL.sku);
+                            if (skuEl) heroTile.sku = skuEl.getAttribute('data-product-id') || skuEl.getAttribute('data-sku') || textOf(skuEl, 30);
+
+                            var parsedPrice = parsePrice(textOf(firstMatch(doc, FIELD_SEL.price), 20));
+                            if (parsedPrice) {
+                                heroTile.price = parsedPrice.amount;
+                                if (parsedPrice.currency) heroTile.currency = parsedPrice.currency;
+                            }
+                            tiles.push(heroTile);
+                            positionCounter++;
+                        }
                     }
                 }
+
 
                 // Phase 1: Extract the regular grids (Customers Also Bought, etc.)
                 var cards = collectAllCards(doc);
@@ -1821,7 +1834,7 @@
         function onHydrationComplete() {
             fetchRetailerConfig().then(function () {
                 waitForIdle(onIdleReady);
-                // startContinuousObserver(); // NEW: Start watching for future changes!
+                //startContinuousObserver(); // NEW: Start watching for future changes!
 
                 initTier10(); // Live Interaction
 
@@ -1833,15 +1846,7 @@
         function startContinuousObserver() {
             var mutationTimer = null;
 
-            var observer = new MutationObserver(function (mutations) {
-                var isSignificant = false;
-                for (var i = 0; i < mutations.length; i++) {
-                    var t = mutations[i].target;
-                    if (t.id === 'dealTimer' || (t.parentElement && t.parentElement.id === 'dealTimer')) continue;
-                    isSignificant = true; break;
-                }
-                if (!isSignificant) return;
-
+            var observer = new MutationObserver(function () {
                 clearTimeout(mutationTimer);
                 // Debounce timer: wait 500ms after the DOM STOPS moving before firing
                 mutationTimer = setTimeout(function () {
@@ -1924,19 +1929,88 @@
             }
         }
 
+        // ================================================================
+        // NEW : Priority 2 - handleDocumentSubmit
+        // Tracks search_submitted events
+        // ================================================================
+        function handleDocumentSubmit(e) {
+            try {
+                var target = e.target;
+                if (!target || target.tagName !== 'FORM') return;
+
+                // MATCH: search_submitted
+                var isSearchForm = target.matches('form[role="search"], form#searchForm, form.search-form') ||
+                    !!target.querySelector('input[type="search"], input[name="q"], input[name="search"]');
+
+                if (isSearchForm) {
+                    var searchInput = target.querySelector('input[type="search"], input[name="q"], input[name="search"]');
+                    var searchData = {
+                        query: searchInput ? searchInput.value.trim() : null,
+                        category_scope: null,
+                        submission_surface: 'on-page-search-widget'
+                    };
+
+                    // Try to find a category scope dropdown (like Amazon's "All Departments")
+                    var scopeDropdown = target.querySelector('select');
+                    if (scopeDropdown && scopeDropdown.selectedOptions && scopeDropdown.selectedOptions.length) {
+                        searchData.category_scope = scopeDropdown.selectedOptions[0].text;
+                    }
+
+                    if (target.closest('header')) searchData.submission_surface = 'header-search';
+                    else if (target.closest('.mobile-menu, [role="navigation"]')) searchData.submission_surface = 'mobile-search';
+
+                    pushEvent("search_submitted", searchData);
+                }
+            } catch (err) { }
+        }
+
+        // ================================================================
+        // NEW : Priority 2 - handleDocumentChange
+        // Tracks sort_changed and checkbox-based filters
+        // ================================================================
+        function handleDocumentChange(e) {
+            try {
+                var target = e.target;
+                if (!target) return;
+
+                // MATCH: sort_changed
+                if (target.tagName === 'SELECT' && (target.name.toLowerCase().includes('sort') || target.id.toLowerCase().includes('sort') || target.className.toLowerCase().includes('sort'))) {
+                    var sortData = {
+                        sort_value: target.options[target.selectedIndex].text || target.value,
+                        page_type: document.body.dataset.pageType || 'unknown'
+                    };
+                    pushEvent("sort_changed", sortData);
+                    return;
+                }
+
+                // MATCH: filter_applied / filter_removed (for checkboxes/radios)
+                var isFilterInput = target.tagName === 'INPUT' && (target.closest('.filters, .facets, aside, [role="complementary"]') || target.name.toLowerCase().includes('filter'));
+
+                if (isFilterInput) {
+                    var isApplied = target.checked;
+                    var filterData = {
+                        filter_type: target.name || target.closest('[data-filter-group]')?.getAttribute('data-filter-group') || 'unknown',
+                        filter_value: target.value || target.nextElementSibling?.textContent?.trim() || 'unknown',
+                        active_filter_count_after: document.querySelectorAll('.filters input:checked, .facets input:checked').length
+                    };
+                    pushEvent(isApplied ? "filter_applied" : "filter_removed", filterData);
+                }
+            } catch (err) { }
+        }
+
         function handleDocumentClick(e) {
             try {
                 var target = e.target;
                 if (!target) return;
 
-                // 1. MATCH: checkout_initiated
+                // ================================================================
+                // NEW : Priority 1: MATCH: checkout_initiated
+                // ================================================================
                 var isCheckoutBtn = target.closest('[data-action="checkout"], .checkout-button, #placeOrderButton, [data-automation-id="checkoutButton"]') ||
                     (target.tagName === 'BUTTON' && /(proceed to checkout|checkout|continue to checkout)/i.test(target.textContent));
 
                 if (isCheckoutBtn && (window.location.href.toLowerCase().includes('/cart') || window.location.href.toLowerCase().includes('cart.html') || !!document.querySelector('.cart-layout') || document.body.dataset.pageType === 'cart')) {
-                    // for production code -- [] if (isCheckoutBtn && (window.location.href.toLowerCase().includes('/cart') || !!document.querySelector('.cart-layout') || document.body.dataset.pageType === 'cart')) 
                     var cartTotals = { cart_line_count: 0, cart_displayed_total: null, cart_displayed_currency: null };
-
                     var items = document.querySelectorAll('#cartItems article.cart-item, #cartItems .cart-item, [data-automation-id="cart-item"]');
                     cartTotals.cart_line_count = items.length;
 
@@ -1949,7 +2023,9 @@
                     return;
                 }
 
-                // 2. MATCH: add_to_cart
+                // ================================================================
+                // NEW : Priority 1: MATCH: add_to_cart
+                // ================================================================
                 var isAddBtn = target.closest('[data-action="add-to-cart"], .add-to-cart') ||
                     (target.tagName === 'BUTTON' && /^(add to cart|add to bag|add)$/i.test(target.textContent));
 
@@ -1981,7 +2057,9 @@
                     return;
                 }
 
-                // 3. MATCH: remove_from_cart
+                // ================================================================
+                // NEW : Priority 1: MATCH: remove_from_cart
+                // ================================================================
                 var isRemoveBtn = target.closest('.remove-item, [data-action="remove"], [data-automation-id="removeItem"]') ||
                     (target.tagName === 'BUTTON' && /^(remove|delete)$/i.test(target.textContent));
 
@@ -2006,10 +2084,55 @@
                     return;
                 }
 
+                // ================================================================
+                // NEW : Priority 2 - filter_applied / filter_removed (Click based filters)
+                // ================================================================
+                var isFilterLink = target.closest('a.filter-link, button.filter-btn, [data-action="filter"]');
+                if (isFilterLink) {
+                    var isRemoving = target.closest('.active-filter, .remove-filter') !== null;
+                    var filterClickData = {
+                        filter_type: isFilterLink.closest('[data-filter-group]')?.getAttribute('data-filter-group') || 'unknown',
+                        filter_value: isFilterLink.textContent.trim(),
+                        active_filter_count_after: document.querySelectorAll('.active-filter, .filters input:checked').length + (isRemoving ? -1 : 1)
+                    };
+                    pushEvent(isRemoving ? "filter_removed" : "filter_applied", filterClickData);
+                    return;
+                }
+
+                // ================================================================
+                // NEW : Priority 2 - product_card_clicked
+                // (Runs AFTER add_to_cart so we don't confuse a cart click with a browse click)
+                // ================================================================
+                var isCardClick = target.closest('a') && target.closest('.product-card, .product-tile, [data-product-id], article, [data-automation-id="product-pod"]');
+                if (isCardClick && !target.closest('[data-action="add-to-cart"], .add-to-cart, button')) {
+                    var clickedCard = target.closest('.product-card, .product-tile, [data-product-id], article, [data-automation-id="product-pod"]');
+                    var cardData = { sku: null, surface: "catalog-grid", position: 1, displayed_price: null, displayed_currency: null };
+
+                    var cardSiblings = clickedCard.parentElement ? clickedCard.parentElement.children : [];
+                    for (var j = 0; j < cardSiblings.length; j++) {
+                        if (cardSiblings[j] === clickedCard) { cardData.position = j + 1; break; }
+                    }
+
+                    var cardSkuEl = firstMatch(clickedCard, FIELD_SEL.sku);
+                    if (cardSkuEl) cardData.sku = cardSkuEl.getAttribute('data-product-id') || cardSkuEl.getAttribute('data-sku');
+
+                    var cardPriceEl = firstMatch(clickedCard, FIELD_SEL.price);
+                    if (cardPriceEl) {
+                        cardData.displayed_price = cardPriceEl.textContent.trim();
+                        cardData.displayed_currency = extractCurrency(cardData.displayed_price);
+                    }
+
+                    pushEvent("product_card_clicked", cardData);
+                    return;
+                }
+
             } catch (err) { }
         }
 
-        // 4. MATCH: purchase_completed (Fired immediately on page load, not click)
+        // ================================================================
+        // NEW : Priority 1: MATCH: purchase_completed
+        // (Fired immediately on page load, not click)
+        // ================================================================
         function checkPurchaseCompleted() {
             var url = window.location.href.toLowerCase();
             if (url.includes('/thank-you') || url.includes('/order-complete') || url.includes('/confirmation') || url.includes('/receipt') || document.body.innerHTML.toLowerCase().includes('thank you for your order')) {
@@ -2026,8 +2149,13 @@
             }
         }
 
+        // ================================================================
+        // NEW : Update initTier10 to attach Priority 2 & 1 listeners
+        // ================================================================
         function initTier10() {
             document.addEventListener('click', handleDocumentClick, { capture: true, passive: true });
+            document.addEventListener('submit', handleDocumentSubmit, { capture: true, passive: true }); // (add) Priority 2
+            document.addEventListener('change', handleDocumentChange, { capture: true, passive: true }); // (add) Priority 2
             setInterval(function () { flushInteractionEvents("time"); }, FLUSH_INTERVAL_MS);
             document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flushInteractionEvents("unload"); });
             window.addEventListener('pagehide', function () { flushInteractionEvents("unload"); });

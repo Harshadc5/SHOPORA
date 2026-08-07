@@ -19,11 +19,14 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Add this so Chrome allows Vercel to talk to your local terminal:
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
 
-  if (req.method === 'OPTIONS') { 
-    res.writeHead(204); 
-    res.end(); 
-    return; 
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
   }
 
   if (req.method === 'POST' && req.url === '/save-html') {
@@ -66,7 +69,7 @@ const server = http.createServer((req, res) => {
         console.log(`🚀 [AIORA] RECEIVED PAYLOAD: ${payload.envelope_type || 'tier0-9'}`);
         console.log(`======================================================`);
         console.dir(payload, { depth: null, colors: true });
-        
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'success' }));
       } catch (e) {
