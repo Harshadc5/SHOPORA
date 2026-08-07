@@ -2192,5 +2192,6 @@
 
     } catch (e) {
         // Fail silently — errors must be invisible to the retailer's page.
+        console.error("🚨 AIORA FATAL ERROR:", e);
     }
 }());
