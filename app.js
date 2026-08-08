@@ -146,6 +146,7 @@ function buildProductCard(product, template) {
   card.querySelector('.price-stack del').textContent = money(retailOldPrice(product));
   card.querySelector('.price-stack span').textContent = 'Save ' + money(retailOldPrice(product) - retailPrice(product));
   const navigateToPDP = (e) => {
+    if (e.target.closest('.wishlist-button')) return;
     e.preventDefault();
     location.href = `./pdp.html?id=${product.id}`;
   };

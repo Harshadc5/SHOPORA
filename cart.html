@@ -1,5 +1,4 @@
-<!doctype html>
-<html lang="en">
+<html lang="en" data-qb-installed="true">
 
 <head>
         <meta charset="UTF-8">
@@ -7,8 +6,8 @@
         <meta name="theme-color" content="#10243e">
         <title>Your cart | SHOPORA</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap"
                 rel="stylesheet">
         <link rel="stylesheet" href="https://shopora-xi-opal.vercel.app/styles.css?v=5">
 </head>
@@ -30,7 +29,7 @@
                         <div class="cart-title">
                                 <div><span class="section-kicker">YOUR BAG</span>
                                         <h1>Shopping cart</h1>
-                                </div><span id="cartItemLabel">0 items</span>
+                                </div><span id="cartItemLabel">2 items</span>
                         </div>
                         <div id="shippingProgress" class="shipping-progress"></div>
                         <div id="cartItems" class="cart-items"></div>
@@ -40,11 +39,20 @@
                         <div class="summary-row"><span>Items (<span id="summaryItems">0</span>)</span><strong
                                         id="summarySubtotal">$0.00</strong></div>
                         <div class="summary-row"><span>Delivery</span><strong id="summaryDelivery">$0.00</strong></div>
-                        <div class="summary-row savings"><span>You save</span><strong id="summarySavings">$0.00</strong></div>
-                        <div class="summary-row savings" id="promoRow" hidden><span>Promo (<span id="promoCodeName"></span>) <button id="removePromoBtn" class="text-button" style="color:var(--red); font-size:0.65rem; padding:0; margin-left:0.25rem;">Remove</button></span><strong id="summaryPromo">-$0.00</strong></div>
-                        <div class="summary-row total"><span>Order total</span><strong id="summaryTotal">$0.00</strong></div>
-                        <div class="promo-input-group" style="display: flex; gap: 0.5rem; margin: 1rem 0 0.5rem; padding-top: 1rem; border-top: 1px solid var(--line);">
-                                <input type="text" id="promoInput" placeholder="Enter promo code" style="flex: 1; min-width: 0; border: 1px solid #c9d3df; border-radius: 9px; padding: 0.6rem; font-size: 0.8rem; text-transform: uppercase;">
+                        <div class="summary-row savings"><span>You save</span><strong id="summarySavings">$0.00</strong>
+                        </div>
+                        <div class="summary-row savings" id="promoRow" hidden><span>Promo
+                                        (<span id="promoCodeName" class="promo-name"></span>) <button
+                                                id="removePromoBtn" class="text-button"
+                                                style="color:var(--red); font-size:0.65rem; padding:0; margin-left:0.25rem;">Remove</button></span><strong
+                                        id="summaryPromo" class="promo-amount">-$0.00</strong></div>
+
+                        <div class="summary-row total"><span>Order total</span><strong id="summaryTotal">$0.00</strong>
+                        </div>
+                        <div class="promo-input-group"
+                                style="display: flex; gap: 0.5rem; margin: 1rem 0 0.5rem; padding-top: 1rem; border-top: 1px solid var(--line);">
+                                <input type="text" id="promoInput" placeholder="Enter promo code"
+                                        style="flex: 1; min-width: 0; border: 1px solid #c9d3df; border-radius: 9px; padding: 0.6rem; font-size: 0.8rem; text-transform: uppercase;">
                                 <button id="applyPromoBtn" class="button" style="padding: 0.6rem 1rem;">Apply</button>
                         </div>
                         <p class="tax-note">Inclusive of all taxes</p><a id="checkoutButton"
@@ -82,11 +90,13 @@
                 </article>
         </template>
         <div id="toastRegion" class="toast-region" aria-live="polite"></div>
-        <div id="quickViewModal" class="modal" hidden></div>
+        <div id="quickViewModal" class="modal" hidden=""></div>
         <script type="module" src="./app.js"></script>
         <!-- AIORA JS Tag — coordination failure signal collector -->
         <script src="tag.js" data-client-id="shopora-prod" data-endpoint="http://localhost:4001/api/collect"
-                data-sampling-rate="1.0" async></script>
+                data-sampling-rate="1.0" async=""></script>
+
+
 
 </body>
 
