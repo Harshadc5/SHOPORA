@@ -34,6 +34,14 @@ function applyPromo(code, page) {
   if (page === 'checkout') renderCheckout();
 }
 
+function removePromo(page) {
+  activePromo = null;
+  localStorage.removeItem(PROMO_KEY);
+  toast('Promo code removed.', 'success');
+  if (page === 'cart') renderCart();
+  if (page === 'checkout') renderCheckout();
+}
+
 function calculatePromoDiscount(subtotal, delivery) {
   if (!activePromo || !PROMO_CODES[activePromo]) return 0;
   const promo = PROMO_CODES[activePromo];
@@ -299,11 +307,16 @@ function renderCart() {
   const promoRow = document.querySelector('#promoRow');
   if (promoRow) {
     if (activePromo && promoDiscount > 0) {
-      promoRow.hidden = false;
+      promoRow.style.display = 'flex';
       document.querySelector('#promoCodeName').textContent = activePromo;
       document.querySelector('#summaryPromo').textContent = '-' + money(promoDiscount);
+      const removeBtn = document.querySelector('#removePromoBtn');
+      if (removeBtn && !removeBtn.hasAttribute('data-bound')) {
+        removeBtn.setAttribute('data-bound', 'true');
+        removeBtn.addEventListener('click', () => removePromo('cart'));
+      }
     } else {
-      promoRow.hidden = true;
+      promoRow.style.display = 'none';
     }
   }
 
@@ -355,11 +368,16 @@ function renderCheckout() {
     const promoRow = document.querySelector('#checkoutPromoRow');
     if (promoRow) {
       if (activePromo && promoDiscount > 0) {
-        promoRow.hidden = false;
+        promoRow.style.display = 'flex';
         document.querySelector('#checkoutPromoName').textContent = activePromo;
         document.querySelector('#checkoutPromo').textContent = '-' + money(promoDiscount);
+        const removeBtn = document.querySelector('#removeCheckoutPromoBtn');
+        if (removeBtn && !removeBtn.hasAttribute('data-bound')) {
+          removeBtn.setAttribute('data-bound', 'true');
+          removeBtn.addEventListener('click', () => removePromo('checkout'));
+        }
       } else {
-        promoRow.hidden = true;
+        promoRow.style.display = 'none';
       }
     }
 
