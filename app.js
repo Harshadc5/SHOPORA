@@ -2,12 +2,46 @@ import { products, categories } from './data/products.js';
 
 const CART_KEY = 'shopora-cart-v2';
 const WISHLIST_KEY = 'shopora-wishlist';
+const PROMO_KEY = 'shopora-promo';
 const USD_RATE = 1;
 const FREE_DELIVERY_MIN = 35;
 const DELIVERY_FEE = 5;
+
+// Promo Codes Registry
+// You can add new promo codes below here!
+const PROMO_CODES = {
+  'WELCOME10': { type: 'percent', value: 10 },
+  'AIORA20': { type: 'percent', value: 20 },
+  'FREESHIP': { type: 'freeship' }
+};
+
 const cart = loadCart();
 const wishlist = new Set(loadJSON(WISHLIST_KEY, []));
+let activePromo = loadJSON(PROMO_KEY, null);
 const currentPage = location.pathname.split('/').pop() || 'index.html';
+
+function applyPromo(code, page) {
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) return;
+  if (!PROMO_CODES[normalized]) {
+    toast('Invalid promo code.', 'error');
+    return;
+  }
+  activePromo = normalized;
+  localStorage.setItem(PROMO_KEY, JSON.stringify(activePromo));
+  toast('Promo code applied!', 'success');
+  if (page === 'cart') renderCart();
+  if (page === 'checkout') renderCheckout();
+}
+
+function calculatePromoDiscount(subtotal, delivery) {
+  if (!activePromo || !PROMO_CODES[activePromo]) return 0;
+  const promo = PROMO_CODES[activePromo];
+  if (promo.type === 'percent') return (subtotal * promo.value) / 100;
+  if (promo.type === 'freeship') return delivery;
+  return 0;
+}
+
 
 function loadJSON(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -174,6 +208,7 @@ function renderCatalog() {
   const params = new URLSearchParams(location.search);
   let activeCategory = categories.some((c) => c.key === params.get('category')) ? params.get('category') : 'all';
   const dealOnly = params.get('deal') === 'true';
+  const wishlistOnly = params.get('wishlist') === 'true';
   const search = document.querySelector('#searchInput');
   const sort = document.querySelector('#sortSelect');
   const price = document.querySelector('#priceRange');
@@ -195,7 +230,7 @@ function renderCatalog() {
         return new RegExp(`\\b${escaped}(s|es)?\\b`, 'i').test(searchable);
       });
 
-      return (activeCategory === 'all' || product.category === activeCategory) && (!dealOnly || product.deal) && searchMatch && retailPrice(product) <= maxPrice && product.rating >= minRating;
+      return (activeCategory === 'all' || product.category === activeCategory) && (!dealOnly || product.deal) && (!wishlistOnly || wishlist.has(product.id)) && searchMatch && retailPrice(product) <= maxPrice && product.rating >= minRating;
     });
 
     // Score relevance so exact name matches appear first
@@ -254,12 +289,36 @@ function renderCart() {
   const container = document.querySelector('#cartItems');
   if (!container) return;
   const items = cartItems(), subtotal = cartSubtotal(), delivery = deliveryFor(subtotal), savings = cartSavings();
+  const promoDiscount = calculatePromoDiscount(subtotal, delivery);
+  const finalTotal = subtotal + delivery - promoDiscount;
   document.querySelector('#summaryItems').textContent = String(cartCount());
   document.querySelector('#summarySubtotal').textContent = money(subtotal);
   document.querySelector('#summaryDelivery').textContent = delivery ? money(delivery) : 'FREE';
   document.querySelector('#summarySavings').textContent = money(savings);
-  document.querySelector('#summaryTotal').textContent = money(subtotal + delivery);
+  
+  const promoRow = document.querySelector('#promoRow');
+  if (promoRow) {
+    if (activePromo && promoDiscount > 0) {
+      promoRow.hidden = false;
+      document.querySelector('#promoCodeName').textContent = activePromo;
+      document.querySelector('#summaryPromo').textContent = '-' + money(promoDiscount);
+    } else {
+      promoRow.hidden = true;
+    }
+  }
+
+  document.querySelector('#summaryTotal').textContent = money(finalTotal);
   document.querySelector('#cartItemLabel').textContent = cartCount() + (cartCount() === 1 ? ' item' : ' items');
+  
+  const btn = document.querySelector('#applyPromoBtn');
+  if (btn && !btn.hasAttribute('data-bound')) {
+    btn.setAttribute('data-bound', 'true');
+    btn.addEventListener('click', () => {
+      const input = document.querySelector('#promoInput');
+      applyPromo(input.value, 'cart');
+      input.value = '';
+    });
+  }
   const checkoutButton = document.querySelector('#checkoutButton');
   checkoutButton.classList.toggle('disabled', !items.length);
   checkoutButton.setAttribute('aria-disabled', String(!items.length));
@@ -267,17 +326,17 @@ function renderCart() {
   const remaining = Math.max(0, FREE_DELIVERY_MIN - subtotal);
   progress.innerHTML = subtotal >= FREE_DELIVERY_MIN ? '<p><strong>✓ You unlocked FREE delivery!</strong></p><div class="progress-track"><i style="width:100%"></i></div>' : `<p>Add <strong>${money(remaining)}</strong> more for FREE delivery</p><div class="progress-track"><i style="width:${Math.min(100, subtotal / FREE_DELIVERY_MIN * 100)}%"></i></div>`;
   if (!items.length) { container.innerHTML = '<div class="cart-empty"><span>🛒</span><h2>Your cart is empty</h2><p>Looks like you have not added anything yet.</p><a class="button button-accent" href="./category.html">Start shopping</a></div>'; return; }
-  container.innerHTML = items.map((item) => `<article class="cart-item" data-cart-id="${item.id}"><div class="product-image" style="cursor:pointer"></div><div><span class="section-kicker">${item.badge}</span><h3 style="cursor:pointer">${item.name}</h3><p class="cart-item-meta">${item.description}</p><p class="cart-item-meta"><b>In stock</b> · FREE returns</p><div class="cart-item-actions"><div class="quantity-control"><button data-dec aria-label="Decrease quantity">−</button><span>${item.quantity}</span><button data-inc aria-label="Increase quantity">+</button></div><button class="text-button" data-save>Save for later</button><button class="text-button" data-remove>Remove</button></div></div><div class="cart-item-price"><strong>${money(retailPrice(item) * item.quantity)}</strong><del>${money(retailOldPrice(item) * item.quantity)}</del><small>${discount(item)}% off</small></div></article>`).join('');
-  items.forEach((item) => { 
-    const row = container.querySelector('[data-cart-id="' + item.id + '"]'); 
-    applyVisual(row.querySelector('.product-image'), item); 
+  container.innerHTML = items.map((item) => `<article class="cart-item" data-cart-id="${item.id}"><div class="product-image" style="cursor:pointer"></div><div><span class="section-kicker">${item.badge}</span><h3 style="cursor:pointer">${item.name}</h3><p class="cart-item-meta">${item.description}</p><p class="cart-item-meta"><b>In stock</b> · FREE returns</p><div class="cart-item-actions"><div class="quantity-control"><button data-dec aria-label="Decrease quantity">−</button><span>${item.quantity}</span><button data-inc aria-label="Increase quantity">+</button></div><button class="text-button" data-save>Save for later</button><button class="text-button" data-remove>Remove</button></div></div><div class="cart-item-price"><strong class="cart-item-total">${money(retailPrice(item) * item.quantity)}</strong><del>${money(retailOldPrice(item) * item.quantity)}</del><small>${discount(item)}% off</small></div></article>`).join('');
+  items.forEach((item) => {
+    const row = container.querySelector('[data-cart-id="' + item.id + '"]');
+    applyVisual(row.querySelector('.product-image'), item);
     const navPDP = (e) => { e.preventDefault(); location.href = `./pdp.html?id=${item.id}`; };
     row.querySelector('.product-image').addEventListener('click', navPDP);
     row.querySelector('h3').addEventListener('click', navPDP);
-    row.querySelector('[data-dec]').addEventListener('click', () => updateQuantity(item.id, item.quantity - 1)); 
-    row.querySelector('[data-inc]').addEventListener('click', () => updateQuantity(item.id, item.quantity + 1)); 
-    row.querySelector('[data-remove]').addEventListener('click', () => removeFromCart(item.id)); 
-    row.querySelector('[data-save]').addEventListener('click', () => { wishlist.add(item.id); saveWishlist(); removeFromCart(item.id); toast('Moved to your wishlist.'); }); 
+    row.querySelector('[data-dec]').addEventListener('click', () => updateQuantity(item.id, item.quantity - 1));
+    row.querySelector('[data-inc]').addEventListener('click', () => updateQuantity(item.id, item.quantity + 1));
+    row.querySelector('[data-remove]').addEventListener('click', () => removeFromCart(item.id));
+    row.querySelector('[data-save]').addEventListener('click', () => { wishlist.add(item.id); saveWishlist(); removeFromCart(item.id); toast('Moved to your wishlist.'); });
   });
 }
 function renderRecommendations() {
@@ -286,21 +345,45 @@ function renderRecommendations() {
 }
 function renderCheckout() {
   const container = document.querySelector('#checkoutItems'), form = document.querySelector('#checkoutForm'); if (!container || !form) return;
-  const update = () => { 
-    const items = cartItems(), subtotal = cartSubtotal(), delivery = deliveryFor(subtotal); 
-    document.querySelector('#checkoutSubtotal').textContent = money(subtotal); 
-    document.querySelector('#checkoutDelivery').textContent = delivery ? money(delivery) : 'FREE'; 
-    document.querySelector('#checkoutTotal').textContent = money(subtotal + delivery); 
-    document.querySelector('#placeOrderButton').disabled = !items.length; 
-    container.innerHTML = items.length ? items.map((item) => `<div class="mini-item" data-mini-id="${item.id}"><div class="product-image" style="cursor:pointer"></div><div><p style="cursor:pointer">${item.name}</p><small>Qty ${item.quantity}</small></div><strong>${money(retailPrice(item) * item.quantity)}</strong></div>`).join('') : '<div class="cart-empty"><p>Your cart is empty.</p><a class="button button-primary" href="./category.html">Shop products</a></div>'; 
+  const update = () => {
+    const items = cartItems(), subtotal = cartSubtotal(), delivery = deliveryFor(subtotal);
+    const promoDiscount = calculatePromoDiscount(subtotal, delivery);
+    const finalTotal = subtotal + delivery - promoDiscount;
+    document.querySelector('#checkoutSubtotal').textContent = money(subtotal);
+    document.querySelector('#checkoutDelivery').textContent = delivery ? money(delivery) : 'FREE';
+    
+    const promoRow = document.querySelector('#checkoutPromoRow');
+    if (promoRow) {
+      if (activePromo && promoDiscount > 0) {
+        promoRow.hidden = false;
+        document.querySelector('#checkoutPromoName').textContent = activePromo;
+        document.querySelector('#checkoutPromo').textContent = '-' + money(promoDiscount);
+      } else {
+        promoRow.hidden = true;
+      }
+    }
+
+    document.querySelector('#checkoutTotal').textContent = money(finalTotal);
+    
+    const btn = document.querySelector('#applyCheckoutPromoBtn');
+    if (btn && !btn.hasAttribute('data-bound')) {
+      btn.setAttribute('data-bound', 'true');
+      btn.addEventListener('click', () => {
+        const input = document.querySelector('#checkoutPromoInput');
+        applyPromo(input.value, 'checkout');
+        input.value = '';
+      });
+    }
+    document.querySelector('#placeOrderButton').disabled = !items.length;
+    container.innerHTML = items.length ? items.map((item) => `<div class="mini-item" data-mini-id="${item.id}"><div class="product-image" style="cursor:pointer"></div><div><p style="cursor:pointer">${item.name}</p><small>Qty ${item.quantity}</small></div><strong>${money(retailPrice(item) * item.quantity)}</strong></div>`).join('') : '<div class="cart-empty"><p>Your cart is empty.</p><a class="button button-primary" href="./category.html">Shop products</a></div>';
     items.forEach((item) => {
       const row = container.querySelector('[data-mini-id="' + item.id + '"]');
       applyVisual(row.querySelector('.product-image'), item);
-      
+
       const navPDP = (e) => { e.preventDefault(); location.href = `./pdp.html?id=${item.id}`; };
       row.querySelector('.product-image').addEventListener('click', navPDP);
       row.querySelector('p').addEventListener('click', navPDP);
-    }); 
+    });
   };
   update();
   form.addEventListener('submit', (event) => { event.preventDefault(); const items = cartItems(); if (!items.length) { toast('Your cart is empty.'); return; } const orderId = 'SP' + Date.now().toString().slice(-8); Object.keys(cart).forEach((key) => delete cart[key]); saveCart(); update(); form.reset(); const message = document.querySelector('#orderMessage'); message.innerHTML = `<div class="success-card"><span>✓</span><h2>Order confirmed!</h2><p>Your demo order <strong>#${orderId}</strong> has been placed successfully.</p><p>No payment was processed.</p><a class="button button-accent full-width" href="./index.html">Continue shopping</a></div>`; message.hidden = false; });
@@ -312,17 +395,17 @@ function renderPDP() {
 
   const main = document.querySelector('#mainContent');
   if (!main) return;
-  
+
   // Set dynamic page title
   document.title = `${product.name} | SHOPORA`;
-  
+
   // Reset inline styles on main to have full control of the layout
   main.style.cssText = 'display: block; padding: 40px max(20px, calc((100vw - 1400px) / 2)); max-width: none; background: #fff;';
 
   let specLabels = ['Feature 1', 'Feature 2', 'Feature 3', 'Feature 4'];
   let variantLabel = 'Style';
   let variantOptions = ['Standard', 'Premium'];
-  
+
   if (product.category === 'electronics') {
     specLabels = ['Brand', 'Operating System', 'RAM Memory', 'CPU Model'];
     variantLabel = 'Configuration';
@@ -424,7 +507,7 @@ function renderPDP() {
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             ${variantOptions.map((opt, i) => `
-              <button class="pdp-variant-btn" data-variant="${opt}" data-active="${i === 0 ? 'true' : 'false'}" style="padding: 6px 14px; border: 2px solid ${i===0 ? 'var(--navy)' : 'var(--line)'}; background: transparent; border-radius: 50px; cursor: pointer; color: ${i===0 ? 'var(--navy)' : 'var(--muted)'}; font-size: 0.75rem; font-weight: 700; transition: all 0.2s;" onmouseover="if(this.dataset.active !== 'true') { this.style.borderColor='var(--navy)'; this.style.color='var(--navy)'; }" onmouseout="if(this.dataset.active !== 'true') { this.style.borderColor='var(--line)'; this.style.color='var(--muted)'; }">
+              <button class="pdp-variant-btn" data-variant="${opt}" data-active="${i === 0 ? 'true' : 'false'}" style="padding: 6px 14px; border: 2px solid ${i === 0 ? 'var(--navy)' : 'var(--line)'}; background: transparent; border-radius: 50px; cursor: pointer; color: ${i === 0 ? 'var(--navy)' : 'var(--muted)'}; font-size: 0.75rem; font-weight: 700; transition: all 0.2s;" onmouseover="if(this.dataset.active !== 'true') { this.style.borderColor='var(--navy)'; this.style.color='var(--navy)'; }" onmouseout="if(this.dataset.active !== 'true') { this.style.borderColor='var(--line)'; this.style.color='var(--muted)'; }">
                 ${opt}
               </button>
             `).join('')}
@@ -612,7 +695,7 @@ function renderPDP() {
         thumbnails.forEach(t => { t.style.borderColor = 'transparent'; t.style.opacity = '0.5'; });
         thumb.style.borderColor = 'var(--blue)';
         thumb.style.opacity = '1';
-        
+
         // Quick visual pop to simulate image changing
         mainImage.style.opacity = '0.7';
         mainImage.style.transform = 'scale(0.98)';
@@ -636,8 +719,25 @@ function initSearch() {
 }
 function initGlobalInteractions() {
   document.querySelectorAll('[data-toast]').forEach((node) => node.addEventListener('click', (event) => { event.preventDefault(); toast(node.dataset.toast); }));
-  const newsletter = document.querySelector('#newsletterForm'); newsletter?.addEventListener('submit', (event) => { event.preventDefault(); toast('You are on the list. Watch your inbox for deals!', 'success'); newsletter.reset(); });
-  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { const modal = document.querySelector('#quickViewModal'); if (modal && !modal.hidden) { modal.hidden = true; document.body.classList.remove('modal-open'); } } });
+  const productForm = document.querySelector('#productFilterForm');
+if (productForm) {
+  productForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const val = document.querySelector('#searchInput').value.trim();
+    if (val) location.href = `./category.html?q=${encodeURIComponent(val)}`;
+    else location.href = './category.html';
+  });
+}
+
+// Update wishlist links dynamically to include the filter parameter
+document.querySelectorAll('.wishlist-link').forEach(link => {
+  link.href = './category.html?wishlist=true';
+});
+
+const newsletter = document.querySelector('#newsletterForm'); 
+newsletter?.addEventListener('submit', (event) => { event.preventDefault(); toast('You are on the list. Watch your inbox for deals!', 'success'); newsletter.reset(); });
+
+document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { const modal = document.querySelector('#quickViewModal'); if (modal && !modal.hidden) { modal.hidden = true; document.body.classList.remove('modal-open'); } } });
 }
 function refreshCartViews() { if (currentPage === 'cart.html') renderCart(); if (currentPage === 'checkout.html') { location.reload(); } }
 updateHeaderCounts(); initSearch(); initGlobalInteractions();
